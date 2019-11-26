@@ -14,7 +14,7 @@ project "Weeabalicious"
     dependson   { "OpenGL Libraries" }
     kind        "WindowedApp"
     language    "C++"
-	debugdir	"Weeabalicious"
+	debugdir	"Main"
 	--pchheader	"GamePCH.h"
 	--pchsource	"Game/Source/Base/WinMain.cpp"
 
@@ -31,6 +31,8 @@ project "Weeabalicious"
         "Main/**.cpp",
 		"Main/**.h",
 		"Main/Tools/**",
+		"Main/Rendering/**",
+		"Main/Rendering/Shaders",
     }
 
     links {

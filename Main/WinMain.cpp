@@ -1,20 +1,66 @@
-#include "Windows.h"
 #include "../Libraries/IMGui/imgui.h"
 #include "../Libraries/IMGui/imgui_impl_glfw.h"
 #include "../Libraries/IMGui/imgui_impl_opengl3.h"
 #include <cstdio>
+#include <string>
+#include <iostream>
+#include <vector>
+
+//Misc Tools
+#include "Tools/imgui_memory_editor.h"
+#include "Tools/file_manager.h"
+#include "Rendering/opengl_shader.h"
 
 #include <GL/gl3w.h>
-
 // Include glfw3.h after our OpenGL definitions
 #include <GLFW/glfw3.h>
 
+#include <shellapi.h>
+
+
+#define PI 3.14159265358979323846
 static void glfw_error_callback(int error, const char* description)
 {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
+void create_triangle(unsigned int& vbo, unsigned int& vao, unsigned int& ebo)
+{
+    // create the triangle
+    float triangle_vertices[] = {
+        0.0f, 0.25f, 0.0f,	// position vertex 1
+        1.0f, 0.0f, 0.0f,	 // color vertex 1
+        0.25f, -0.25f, 0.0f,  // position vertex 1
+        0.0f, 1.0f, 0.0f,	 // color vertex 1
+        -0.25f, -0.25f, 0.0f, // position vertex 1
+        0.0f, 0.0f, 1.0f,	 // color vertex 1
+    };
+    unsigned int triangle_indices[] = {
+        0, 1, 2 };
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glGenBuffers(1, &ebo);
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triangle_indices), triangle_indices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
 
+void DragNDrop(GLFWwindow* window, int count, const char** paths)
+{
+    for (int i = 0; i < count; i++)
+    {
+        //TODO handle dragNDrops Here
+    }
+}
 
+//Main program
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
     // Setup window
@@ -26,13 +72,10 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdL
     const char* glsl_version = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-    //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 
     // Create window with graphics context
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
-    if (window == NULL)
-        return 1;
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "Weeabalicious", NULL, NULL);
+    if (window == NULL) { return 1; }
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
 
@@ -52,12 +95,12 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdL
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+    io.ConfigFlags |= ImGuiCol_DragDropTarget;
     //io.ConfigViewportsNoAutoMerge = true;
     //io.ConfigViewportsNoTaskBarIcon = true;
     
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
-    //ImGui::StyleColorsClassic();
 
     // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
     ImGuiStyle& style = ImGui::GetStyle();
@@ -88,73 +131,143 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdL
 
     // Our state
     bool show_demo_window = true;
-    bool show_another_window = false;
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    ImVec4 clear_color = ImVec4(0.27f, 0.27f, 0.27f, 1.00f);
+
+    // create our geometries
+    unsigned int vbo, vao, ebo;
+    create_triangle(vbo, vao, ebo);
+
+    //Init Shader
+    Shader triangle_shader;
+    triangle_shader.init(FileManager::read("Rendering/Shaders/simple-shader.vs"), FileManager::read("Rendering/Shaders/simple-shader.fs"));
+
+    //Drag and drop call back
+    glfwSetDropCallback(window, DragNDrop);
 
     // Main loop
     while (!glfwWindowShouldClose(window))
     {
-        // Poll and handle events (inputs, window resize, etc.)
-        // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-        // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
-        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
-        // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
+        //Process Window Events
+        MSG msg;
+
+        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+
         glfwPollEvents();
+        glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+        glClear(GL_COLOR_BUFFER_BIT);
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+        //Do Things
+
+        //Dockspace
+        static bool opt_fullscreen_persistant = true;
+        bool opt_fullscreen = opt_fullscreen_persistant;
+        static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
+
+        // We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
+        // because it would be confusing to have two docking targets within each others.
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+        if (opt_fullscreen)
+        {
+            ImGuiViewport* viewport = ImGui::GetMainViewport();
+            ImGui::SetNextWindowPos(viewport->Pos);
+            ImGui::SetNextWindowSize(viewport->Size);
+            ImGui::SetNextWindowViewport(viewport->ID);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+            window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+            window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+        }
+
+        // When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background and handle the pass-thru hole, so we ask Begin() to not render a background.
+        if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
+            window_flags |= ImGuiWindowFlags_NoBackground;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        ImGui::Begin("DockSpace Demo", nullptr, window_flags);
+        ImGui::PopStyleVar();
+
+        if (opt_fullscreen)
+            ImGui::PopStyleVar(2);
+
+        // DockSpace
+        ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+
+        //Menu Bar
+        if (ImGui::BeginMenuBar())
+        {
+            if (ImGui::BeginMenu("Docking"))
+            {
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenuBar();
+        }
+
+        //Memory Editor
+        static unsigned char ram[0x1000] = { 0 };
+        if ((ImGui::GetFrameCount() % 60) == 0)
+            for (int n = 0; n < 0x1000; n++)
+                ram[n] = ((n % 16) << 4) | ((ram[n] + 1) & 0x0F);
+
+        static MemoryEditor MemEdit;
+        ImGui::Begin("Memory Viewer");
+        MemEdit.DrawContents(ram, sizeof(ram), (size_t)ram);
+        MemEdit.OptShowOptions = false;
+        ImGui::End();
+
+        //Show Demo Window
         if (show_demo_window)
             ImGui::ShowDemoWindow(&show_demo_window);
 
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
-        {
-            static float f = 0.0f;
-            static int counter = 0;
+        // rendering our geometries
+        triangle_shader.use();
+        glBindVertexArray(vao);
+        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
 
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+        // render your GUI
+        ImGui::Begin("Triangle Position/Color");
+        static float rotation = 0.0;
+        ImGui::SliderFloat("rotation", &rotation, 0, 2 * PI);
+        static float translation[] = { 0.0, 0.0 };
+        ImGui::SliderFloat2("position", translation, -1.0, 1.0);
+        static float color[4] = { 1.0f,1.0f,1.0f,1.0f };
+        // pass the parameters to the shader
+        triangle_shader.setUniform("rotation", rotation);
+        triangle_shader.setUniform("translation", translation[0], translation[1]);
+        // color picker
+        ImGui::ColorEdit3("color", color);
+        // multiply triangle's color with this color
+        triangle_shader.setUniform("color", color[0], color[1], color[2]);
+        ImGui::End();
 
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &show_another_window);
+        // render your GUI
+        ImGui::Begin("Demo window");
+        ImGui::Button("Hello!");
+        ImGui::End();
 
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
 
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
+        ImGui::End();
 
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-            ImGui::End();
-        }
-
-        // 3. Show another simple window.
-        if (show_another_window)
-        {
-            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
-            if (ImGui::Button("Close Me"))
-                show_another_window = false;
-            ImGui::End();
-        }
-
+        //Finish Doing things and render to Screen
         // Rendering
         ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
-        glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
-        glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         // Update and Render additional Platform Windows
-        // (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
-        //  For this specific demo app we could also call glfwMakeContextCurrent(window) directly)
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
             GLFWwindow* backup_current_context = glfwGetCurrentContext();
@@ -162,8 +275,8 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdL
             ImGui::RenderPlatformWindowsDefault();
             glfwMakeContextCurrent(backup_current_context);
         }
-
         glfwSwapBuffers(window);
+
     }
 
     // Cleanup
