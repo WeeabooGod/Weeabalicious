@@ -1,16 +1,16 @@
 ------------------------------------------------ Solution
-workspace "GreenlumaRebornManager"
+workspace "Weeabalicious"
     configurations  { "Debug", "Release" }
-    location        "GreenlumaRebornManager"
-    startproject    "GreenlumaRebornManager"
+    location        "Weeabalicious"
+    startproject    "Weeabalicious"
 
     filter "system:windows"
         platforms       { "x64" }
         characterset    "MBCS"
 
------------------------------------------------- GreenlumaRebornManager Project 
-project "GreenlumaRebornManager"
-    location    "GreenlumaRebornManager"
+------------------------------------------------ Weeabalicious Project 
+project "Weeabalicious"
+    location    "Weeabalicious"
     dependson   { "Libraries" }
     kind        "windowedapp"
     language    "C++"
@@ -39,7 +39,7 @@ project "GreenlumaRebornManager"
     }
 ------------------------------------------------ Libraries Project
 project "Libraries"
-    location    "GreenlumaRebornManager/Libraries"
+    location    "Weeabalicious/Libraries"
     kind        "StaticLib"
 	language    "C++"
 	
