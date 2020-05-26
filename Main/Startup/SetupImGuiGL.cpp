@@ -1,15 +1,27 @@
 #include "SetupImGuiGL.h"
+<<<<<<< HEAD
+=======
+
+>>>>>>> 40fc11046fb06e8267e48fbc2506a4228f75a8ed
 static void glfw_error_callback(int error, const char* description)
 {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
+<<<<<<< HEAD
 ImguiOpenGL::ImguiOpenGL()
 {
     // Setup window
     glfwSetErrorCallback(glfw_error_callback);
     //if (!glfwInit())
     //    return 1;
+=======
+
+ImguiOpenGL::ImguiOpenGL(const std::string& programName)
+{
+    // Setup window
+    glfwSetErrorCallback(glfw_error_callback);
+>>>>>>> 40fc11046fb06e8267e48fbc2506a4228f75a8ed
     glfwInit();
 
     // GL 3.0 + GLSL 130
@@ -18,6 +30,7 @@ ImguiOpenGL::ImguiOpenGL()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
     // Create window with graphics context
+<<<<<<< HEAD
     window = glfwCreateWindow(1280, 720, "Weeabalicious", NULL, NULL);
     //if (window == NULL) { return 1; }
     glfwMakeContextCurrent(window);
@@ -30,6 +43,12 @@ ImguiOpenGL::ImguiOpenGL()
     //    fprintf(stderr, "Failed to initialize OpenGL loader!\n");
     //    return 1;
     //}
+=======
+    window = glfwCreateWindow(1280, 720, programName.c_str(), nullptr, nullptr);
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(1); // Enable vsync
+
+>>>>>>> 40fc11046fb06e8267e48fbc2506a4228f75a8ed
     gl3wInit();
 
     // Setup Dear ImGui context
@@ -117,4 +136,8 @@ void ImguiOpenGL::CleanupImGuiGL()
 GLFWwindow* ImguiOpenGL::GetWindow() const
 {
     return window;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 40fc11046fb06e8267e48fbc2506a4228f75a8ed

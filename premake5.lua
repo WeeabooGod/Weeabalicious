@@ -1,22 +1,20 @@
 ------------------------------------------------ Solution
-workspace "Weeabalicious"
+workspace "GreenlumaRebornManager"
     configurations  { "Debug", "Release" }
-    location        "Weeabalicious"
-    startproject    "Weeabalicious"
+    location        "GreenlumaRebornManager"
+    startproject    "GreenlumaRebornManager"
 
     filter "system:windows"
         platforms       { "x64" }
         characterset    "MBCS"
 
------------------------------------------------- Weeabalicious Project 
-project "Weeabalicious"
-    location    "Weeabalicious"
-    dependson   { "OpenGL Libraries" }
-    kind        "WindowedApp"
+------------------------------------------------ GreenlumaRebornManager Project 
+project "GreenlumaRebornManager"
+    location    "GreenlumaRebornManager"
+    dependson   { "Libraries" }
+    kind        "windowedapp"
     language    "C++"
 	debugdir	"Main"
-	--pchheader	"GamePCH.h"
-	--pchsource	"Game/Source/Base/WinMain.cpp"
 
     includedirs {
 		"Libraries/OpenGL/GLFW/include",
@@ -24,25 +22,24 @@ project "Weeabalicious"
     }
 	
 	libdirs {
-		"Libraries/OpenGL/GLFW/lib-vc2019"
+		"Libraries/OpenGL/GLFW/lib-vc2019",
 	}
 
     files {
         "Main/**.cpp",
 		"Main/**.h",
 		"Main/Tools/**",
-		"Main/Rendering/**",
-		"Main/Rendering/Shaders",
+		"Main/Config/**",
     }
 
     links {
-		"OpenGL Libraries",
+		"Libraries",
         "opengl32",
 		"glfw3",
     }
 ------------------------------------------------ Libraries Project
-project "OpenGL Libraries"
-    location    "Weeabalicious/Libraries"
+project "Libraries"
+    location    "GreenlumaRebornManager/Libraries"
     kind        "StaticLib"
 	language    "C++"
 	
@@ -52,10 +49,12 @@ project "OpenGL Libraries"
     }
 	
 	libdirs {
-		"Libraries/OpenGL/GLFW/lib-vc2019"
+		"Libraries/OpenGL/GLFW/lib-vc2019",
 	}
 
     files {
         "Libraries/OpenGL/**",
         "Libraries/IMGui/**",
+        "Libraries/cJSON/cJSON.c",
+        "Libraries/cJSON/cJSON.h",
     }
