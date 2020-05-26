@@ -1,1 +1,0 @@
-﻿//TODO, Code a Binary Reader
